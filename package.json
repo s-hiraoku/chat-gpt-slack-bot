@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npx tsc",
     "build:watch": "npx tsc --watch",
-    "serve": "node --require dotenv/config dist/app.js"
+    "serve": "npm run build && node --require dotenv/config dist/app.js"
   },
   "author": "hiraoku.shinichi",
   "license": "MIT",
