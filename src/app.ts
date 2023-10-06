@@ -1,9 +1,11 @@
 import { App } from '@slack/bolt';
 import { load } from 'ts-dotenv';
-import { Env } from './types';
-import { initOpenAI } from './openai';
+import { Env, OPEN_AI_ROLE_TYPE } from './types';
+import { getSlackBotId } from './slack';
 
 let env: Partial<Env>;
+let slackBotId: string | undefined;
+
 try {
   env = load({
     SLACK_BOT_TOKEN: String,
@@ -28,18 +30,45 @@ const app = new App({
   signingSecret: env.SLACK_SIGNING_SECRET,
 });
 
-app.event('app_mention', async ({ event, say }) => {
+app.event('app_mention', async ({ event, client, say }) => {
   const threadTs = event.thread_ts ? event.thread_ts : event.ts;
-  await say({
-    text: `Hello, <@${event.user}>. You mentioned me with: ${event.text}`,
-    thread_ts: threadTs,
-  });
-});
+  try {
+    const threadMessagesResponse = await client.conversations.replies({
+      channel: event.channel,
+      ts: threadTs,
+    });
+    const threadMessages = threadMessagesResponse.messages;
 
-initOpenAI(env.OPENAI_API_KEY);
+    if (threadMessages) {
+      const mentionMessages = threadMessages.reduce(
+        (acc: Array<{ role: 'user' | 'assistant'; content: string }>, message) => {
+          if (message.text?.includes(`<@${slackBotId}>`) || message.text?.includes(`<@${message.user}>`)) {
+            const role = message.user === slackBotId ? OPEN_AI_ROLE_TYPE.assistant : OPEN_AI_ROLE_TYPE.user;
+            acc.push({ role: role, content: message.text });
+          }
+          return acc;
+        },
+        [],
+      );
+      console.log('mentionMessages', mentionMessages);
+    }
+  } catch (err) {
+    console.error(err);
+    await say({
+      text: `<@${event.user}>\n A defect has occurred. Please contact the developer.\n\n${err}`,
+      thread_ts: threadTs,
+    });
+  }
+});
 
 (async () => {
   await app.start(process.env.PORT || 3000);
+
+  if (!env.SLACK_BOT_TOKEN) {
+    console.error(' SLACK_BOT_TOKEN are not set in the environment variables');
+    process.exit(1);
+  }
+  slackBotId = await getSlackBotId(app, env.SLACK_BOT_TOKEN);
 
   console.log('⚡️ Bolt app is running!');
 })();
