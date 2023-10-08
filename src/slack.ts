@@ -1,4 +1,7 @@
 import { App } from '@slack/bolt';
+import { OPEN_AI_ROLE_TYPE, OpenAIMessages } from './types';
+import { Message } from '@slack/web-api/dist/response/ConversationsRepliesResponse';
+import { sanitizeText } from './utils';
 
 export const getSlackBotId = async (app: App, slackBotToken: string) => {
   try {
@@ -9,4 +12,17 @@ export const getSlackBotId = async (app: App, slackBotToken: string) => {
   } catch (error) {
     console.error(error);
   }
+};
+
+export const covertSlackMessageToOpenAIMessage = (slackMessages: Message[], slackBotId: string): OpenAIMessages => {
+  // Set Conversation history to mentionMessages.
+  const mentionMessages = slackMessages.reduce((acc: OpenAIMessages, message) => {
+    if (message.text?.includes(`<@${slackBotId}>`) || message.text?.includes(`<@${message.user}>`)) {
+      const role = message.user === slackBotId ? OPEN_AI_ROLE_TYPE.assistant : OPEN_AI_ROLE_TYPE.user;
+      const content = sanitizeText(message.text);
+      acc.push({ role: role, content });
+    }
+    return acc;
+  }, []);
+  return mentionMessages;
 };
