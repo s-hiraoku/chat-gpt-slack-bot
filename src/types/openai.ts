@@ -1,9 +1,12 @@
-export type OpenAIRoleType = 'user' | 'assistant' | 'system';
-export const OPEN_AI_ROLE_TYPE = {
+import { ChatCompletionRole } from 'openai/resources/chat';
+
+export type OpenAIRoleType = ChatCompletionRole;
+export const OPEN_AI_ROLE_TYPE: Record<OpenAIRoleType, OpenAIRoleType> = {
+  function: 'function',
+  system: 'system',
   user: 'user',
   assistant: 'assistant',
-  system: 'system',
-} as const satisfies Record<OpenAIRoleType, OpenAIRoleType>;
+};
 
 export type OpenAIMessage = {
   role: OpenAIRoleType;

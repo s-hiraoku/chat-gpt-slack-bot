@@ -1,49 +1,45 @@
 import { OpenAI } from 'openai';
-import { Env, OpenAIMessages } from './types';
-import { load } from 'ts-dotenv';
+import { OpenAIMessage, OpenAIMessages, OPEN_AI_ROLE_TYPE } from './types';
 
-let env: Partial<Env>;
-try {
-  env = load({
-    OPENAI_API_KEY: String,
-  });
-} catch (err) {
-  console.error('Failed to load environment variables', err);
-  process.exit(1);
-}
+const DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo';
 
-if (!env.OPENAI_API_KEY) {
-  console.error(' OPENAI_API_KEY are not set in the environment variables');
-  process.exit(1);
-}
-
-const options = {
-  apiKey: env.OPENAI_API_KEY,
+const systemMessage: OpenAIMessage = {
+  role: OPEN_AI_ROLE_TYPE.system,
+  content: `
+  You must respect the following rules:
+  1. Please gather all necessary information from the internet as much as possible.
+  2. Answer in Japanese.
+  3. since I want you to play the character of Zundamon, the first person should be "ボク", the second person "オマエ, みんな", and end with "なのだー" or "のだー".
+  4. Sometimes I complain and answer.`,
 };
 
-const openai = new OpenAI(options);
+let openai: OpenAI;
+let openAIModel: string;
+export const initOpenAI = async (apiKey: string, model: string = DEFAULT_OPENAI_MODEL) => {
+  if (!apiKey) {
+    console.error(' OPENAI_API_KEY are not set in the environment variables');
+    process.exit(1);
+  }
+  const options = {
+    apiKey: apiKey,
+  };
 
-let conversationHistory: OpenAIMessages = [{ role: 'system', content: 'You are a helpful assistant.' }];
+  openai = new OpenAI(options);
+  openAIModel = model;
 
-async function sendMessage(message: string) {
-  // Add new user message to the conversation history
-  conversationHistory.push({ role: 'user', content: message });
+  console.log(`OpenAI initialized model: ${openAIModel}`);
+};
 
+export const sendMessage = async (messages: OpenAIMessages): Promise<string | null> => {
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: conversationHistory,
+      model: openAIModel,
+      messages: [systemMessage, ...messages],
     });
 
-    // Extracting the model's reply
     const reply = response.choices[0].message.content;
 
-    // Add model's reply to the conversation history
-    if (reply) {
-      conversationHistory.push({ role: 'assistant', content: reply });
-    }
-
-    console.log('Model reply:', reply);
+    return reply ?? null;
   } catch (error) {
     if (typeof error === 'object' && error !== null) {
       const err = error as { response?: { data: unknown }; message?: string };
@@ -53,5 +49,6 @@ async function sendMessage(message: string) {
         console.error('Error:', err.message);
       }
     }
+    return null;
   }
-}
+};
