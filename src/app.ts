@@ -1,25 +1,15 @@
-import { App, SayFn } from '@slack/bolt';
-import { OpenAIMessages } from './types';
-import { covertSlackMessageToOpenAIMessage, getSlackBotId } from './slack';
-import { getEnv, sanitizeText } from './utils';
-import { initOpenAI, sendMessage } from './openai';
+import { App } from '@slack/bolt';
+import { SlackFiles } from './types';
+import { getSlackBotId } from './slack';
+import { sanitizeText, validateFiles } from './utils';
+import { initOpenAI } from './openai';
 import { REVIEW_REQUEST_MESSAGE, SLACK_EMPTY_MESSAGE_REPLY } from './messages/slack';
-
-const { SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, OPENAI_API_KEY, OPENAI_MODEL } = getEnv();
-
-if (!SLACK_BOT_TOKEN || !OPENAI_API_KEY) {
-  console.error(' SLACK_BOT_TOKEN or OPENAI_API_KEY are not set in the environment variables');
-  process.exit(1);
-}
+import axios from 'axios';
+import { getEnvVariables, processThreadMessages, replyWithEventTS } from './helpers';
 
 let slackBotId: string | undefined;
 
-const replyWithEventTS = async (say: SayFn, text: string, eventTS: string) => {
-  await say({
-    text,
-    thread_ts: eventTS,
-  });
-};
+const { SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, OPENAI_API_KEY, OPENAI_MODEL } = getEnvVariables();
 
 const app = new App({
   token: SLACK_BOT_TOKEN,
@@ -38,33 +28,29 @@ app.event('app_mention', async ({ event, client, say }) => {
     return;
   }
   if (currentMessage === REVIEW_REQUEST_MESSAGE) {
-    await replyWithEventTS(say, 'Please send the code to be reviewed.', eventTS);
+    if (!('files' in event && event.files && validateFiles(event.files as SlackFiles))) {
+      await replyWithEventTS(say, 'Attached file is invalid.', eventTS);
+      return;
+    }
+    try {
+      const fileUrl = (event.files as SlackFiles)[0].url_private;
+      const response = await axios.get(fileUrl, {
+        headers: {
+          Authorization: `Bearer ${SLACK_BOT_TOKEN}`,
+        },
+        responseType: 'arraybuffer',
+      });
+      const fileData = response.data;
+      console.log('fileData', fileData);
+    } catch (err) {
+      console.error(err);
+      await replyWithEventTS(say, 'An error occurred while downloading the file.', eventTS);
+    }
+
     return;
   }
 
-  try {
-    const threadMessagesResponse = await client.conversations.replies({
-      channel: event.channel,
-      ts: threadTs,
-    });
-    const threadMessages = threadMessagesResponse.messages;
-
-    if (threadMessages && slackBotId) {
-      // Set Conversation history to mentionMessages.
-      const mentionMessages = covertSlackMessageToOpenAIMessage(threadMessages, slackBotId);
-      console.log('mentionMessages', mentionMessages);
-      const reply = await sendMessage(mentionMessages as OpenAIMessages);
-      if (reply) {
-        await say({ text: reply, thread_ts: threadTs });
-      }
-    }
-  } catch (err) {
-    console.error(err);
-    await say({
-      text: `<@${user}>\n A defect has occurred. Please contact the developer.\n\n${err}`,
-      thread_ts: threadTs,
-    });
-  }
+  processThreadMessages(client, event.channel, threadTs, user, slackBotId, say);
 });
 
 (async () => {

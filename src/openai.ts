@@ -30,7 +30,7 @@ export const initOpenAI = async (apiKey: string, model: string = DEFAULT_OPENAI_
   console.log(`OpenAI initialized model: ${openAIModel}`);
 };
 
-export const sendMessage = async (messages: OpenAIMessages): Promise<string | null> => {
+export const getChatGPTResponse = async (messages: OpenAIMessages): Promise<string | null> => {
   try {
     const response = await openai.chat.completions.create({
       model: openAIModel,
