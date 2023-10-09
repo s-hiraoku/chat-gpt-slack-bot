@@ -1,11 +1,9 @@
 import { App } from '@slack/bolt';
-import { SlackFiles } from './types';
 import { getSlackBotId } from './slack';
-import { sanitizeText, validateFiles } from './utils';
+import { sanitizeText } from './utils';
 import { initOpenAI } from './openai';
 import { REVIEW_REQUEST_MESSAGE, SLACK_EMPTY_MESSAGE_REPLY } from './messages/slack';
-import axios from 'axios';
-import { getEnvVariables, processThreadMessages, replyWithEventTS } from './helpers';
+import { getEnvVariables, processReviewCode, processThreadMessages, replyWithEventTS } from './helpers';
 
 let slackBotId: string | undefined;
 
@@ -28,25 +26,7 @@ app.event('app_mention', async ({ event, client, say }) => {
     return;
   }
   if (currentMessage === REVIEW_REQUEST_MESSAGE) {
-    if (!('files' in event && event.files && validateFiles(event.files as SlackFiles))) {
-      await replyWithEventTS(say, 'Attached file is invalid.', eventTS);
-      return;
-    }
-    try {
-      const fileUrl = (event.files as SlackFiles)[0].url_private;
-      const response = await axios.get(fileUrl, {
-        headers: {
-          Authorization: `Bearer ${SLACK_BOT_TOKEN}`,
-        },
-        responseType: 'arraybuffer',
-      });
-      const fileData = response.data;
-      console.log('fileData', fileData);
-    } catch (err) {
-      console.error(err);
-      await replyWithEventTS(say, 'An error occurred while downloading the file.', eventTS);
-    }
-
+    processReviewCode(event, eventTS, SLACK_BOT_TOKEN, say);
     return;
   }
 

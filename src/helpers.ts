@@ -1,7 +1,7 @@
-import { SayFn } from '@slack/bolt';
-import { getEnv } from './utils';
+import { AppMentionEvent, SayFn } from '@slack/bolt';
+import { downloadFile, getEnv, validateFiles } from './utils';
 import { covertSlackMessageToOpenAIMessage } from './slack';
-import { OpenAIMessages } from './types';
+import { OpenAIMessages, SlackFiles } from './types';
 import { WebClient } from '@slack/web-api';
 import { getChatGPTResponse } from './openai';
 
@@ -59,4 +59,13 @@ export const processThreadMessages = async (
     });
     throw err;
   }
+};
+
+export const processReviewCode = async (event: AppMentionEvent, eventTS: string, slackBotToken: string, say: SayFn) => {
+  if (!('files' in event && event.files && validateFiles(event.files as SlackFiles))) {
+    await replyWithEventTS(say, 'Attached file is invalid.', eventTS);
+    return;
+  }
+  const fileUrl = (event.files as SlackFiles)[0].url_private;
+  const zipFile = await downloadFile(fileUrl, slackBotToken);
 };
