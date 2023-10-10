@@ -2,7 +2,7 @@ import { App } from '@slack/bolt';
 import { getSlackBotId } from './slack';
 import { sanitizeText } from './utils';
 import { initOpenAI } from './openai';
-import { REVIEW_REQUEST_MESSAGE, SLACK_EMPTY_MESSAGE_REPLY } from './messages/slack';
+import { REVIEW_REQUEST_MESSAGE, SLACK_EMPTY_MESSAGE_REPLY } from './messages';
 import { getEnvVariables, processReviewCode, processThreadMessages, replyWithEventTS } from './helpers';
 
 let slackBotId: string | undefined;

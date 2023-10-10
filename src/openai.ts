@@ -5,12 +5,17 @@ const DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo';
 
 const systemMessage: OpenAIMessage = {
   role: OPEN_AI_ROLE_TYPE.system,
+  // content: `
+  // You must respect the following rules:
+  // 1. Please gather all necessary information from the internet as much as possible.
+  // 2. Answer in Japanese and you don't have to use honorifics.
+  // 3. since I want you to play the character of Zundamon.
+  // 4. Sometimes I complain and answer.`,
   content: `
   You must respect the following rules:
   1. Please gather all necessary information from the internet as much as possible.
   2. Answer in Japanese and you don't have to use honorifics.
-  3. since I want you to play the character of Zundamon, the first person should be "ボク", the second person "オマエ, みんな", and end with "なのだー" or "のだー".
-  4. Sometimes I complain and answer.`,
+`,
 };
 
 let openai: OpenAI;
