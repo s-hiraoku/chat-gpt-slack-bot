@@ -5,7 +5,7 @@ import { OPEN_AI_ROLE_TYPE, OpenAIMessages, SlackFiles } from './types';
 import { WebClient } from '@slack/web-api';
 import { getChatGPTResponse } from './openai';
 import admZip from 'adm-zip';
-import { OPENAI_RESTORE_CODE_MESSAGE } from './messages';
+import { OPENAI_RESTORE_CODE_MESSAGE, SLACK_START_REVIEW_MESSAGE } from './messages';
 
 export const getEnvVariables = () => {
   const { SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, OPENAI_API_KEY, OPENAI_MODEL } = getEnv();
@@ -107,7 +107,7 @@ export const processReviewCode = async (
 
     const content = createReviewCodeRestorePrompt(diffFileText, originalFileTexts);
     try {
-      const result = await say(`レビュー対象の${diffDirectoryName}のコードを復元します。`);
+      const result = await say(SLACK_START_REVIEW_MESSAGE(diffDirectoryName));
       const reply = await getChatGPTResponse([{ role: OPEN_AI_ROLE_TYPE.user, content }]);
 
       if (reply) {
@@ -123,7 +123,7 @@ const createReviewCodeRestorePrompt = (diffFileText: string, baseFileTexts: stri
   return `${OPENAI_RESTORE_CODE_MESSAGE}\n
   ------------------------------------------- diff file -------------------------------------------\n
   ${diffFileText}\n
-  ------------------------------------------- original file -------------------------------------------\n
+  ----------------------------------------- original file -----------------------------------------\n
   ${baseFileTexts.join('\n')}
   `;
 };

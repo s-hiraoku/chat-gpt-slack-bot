@@ -5,7 +5,7 @@ export const NEWLINE_REGEXP = /\n/g;
 export const EMPTY_STRING = '';
 
 export const sanitizeText = (text: string) => {
-  return text.replace(SLACK_MENTION_REGEXP, '').replace(NEWLINE_REGEXP, '');
+  return text.replace(SLACK_MENTION_REGEXP, EMPTY_STRING).replace(NEWLINE_REGEXP, EMPTY_STRING);
 };
 
 export const validateFiles = (files: SlackFiles) => {
