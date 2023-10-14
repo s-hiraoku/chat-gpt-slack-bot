@@ -26,7 +26,7 @@ app.event('app_mention', async ({ event, client, say }) => {
     return;
   }
   if (currentMessage === REVIEW_REQUEST_MESSAGE) {
-    processReviewCode(event, eventTS, SLACK_BOT_TOKEN, say);
+    processReviewCode(client, event, eventTS, SLACK_BOT_TOKEN, slackBotId, say);
     return;
   }
 

@@ -5,7 +5,7 @@ import { OPEN_AI_ROLE_TYPE, OpenAIMessages, SlackFiles } from './types';
 import { WebClient } from '@slack/web-api';
 import { getChatGPTResponse } from './openai';
 import admZip from 'adm-zip';
-import { OPENAI_RESTORE_CODE_MESSAGE, SLACK_START_REVIEW_MESSAGE } from './messages';
+import { OPENAI_RESTORE_CODE_MESSAGE, SLACK_START_REVIEW_MESSAGE, chatGPTRequestMessages } from './messages';
 
 export const getEnvVariables = () => {
   const { SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, OPENAI_API_KEY, OPENAI_MODEL } = getEnv();
@@ -46,9 +46,9 @@ export const processThreadMessages = async (
     const threadMessages = threadMessagesResponse.messages;
 
     if (threadMessages && slackBotId) {
-      const mentionMessages = covertSlackMessageToOpenAIMessage(threadMessages, slackBotId);
-      console.log('mentionMessages', mentionMessages);
-      const reply = await getChatGPTResponse(mentionMessages as OpenAIMessages);
+      const conversations = covertSlackMessageToOpenAIMessage(threadMessages, slackBotId);
+      console.log('convesations', conversations);
+      const reply = await getChatGPTResponse(conversations as OpenAIMessages);
       if (reply) {
         await say({ text: reply, thread_ts: threadTs });
       }
@@ -65,9 +65,11 @@ export const processThreadMessages = async (
 
 const DIFF_FILES_DIR = 'git-diff-files';
 export const processReviewCode = async (
+  client: WebClient,
   event: AppMentionEvent,
   eventTS: string,
   slackBotToken: string,
+  slackBotId: string | undefined,
   say: SayFn,
 ): Promise<void> => {
   if (!('files' in event && event.files && validateFiles(event.files as SlackFiles))) {
@@ -113,8 +115,37 @@ export const processReviewCode = async (
       if (reply) {
         await say({ text: reply, thread_ts: result.ts });
       }
+      await processChatGPTRequest(client, result.channel, result.ts, slackBotId, say);
     } catch (error) {
       console.error('Error sending content:', error);
+    }
+  }
+};
+
+const processChatGPTRequest = async (
+  client: WebClient,
+  channel: string | undefined,
+  eventTS: string | undefined,
+  slackBotId: string | undefined,
+  say: SayFn,
+): Promise<void> => {
+  for (const content of chatGPTRequestMessages) {
+    if (!channel || !eventTS) {
+      console.error('channel or eventTS is undefined');
+      return;
+    }
+    const threadMessagesResponse = await client.conversations.replies({
+      channel,
+      ts: eventTS,
+    });
+
+    const threadMessages = Array.isArray(threadMessagesResponse.messages) ? threadMessagesResponse.messages : [];
+    if (slackBotId) {
+      const conversations = covertSlackMessageToOpenAIMessage(threadMessages, slackBotId);
+      const reply = await getChatGPTResponse([...conversations, { role: OPEN_AI_ROLE_TYPE.user, content }]);
+      if (reply) {
+        await say({ text: reply, thread_ts: eventTS });
+      }
     }
   }
 };

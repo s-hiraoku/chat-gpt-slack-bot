@@ -7,3 +7,8 @@ export const OPENAI_RESTORE_CODE_MESSAGE = `Diff file contents and original code
 // slack reply messages
 export const SLACK_EMPTY_MESSAGE_REPLY = 'Messageを入力してください。';
 export const SLACK_START_REVIEW_MESSAGE = (fileName: string) => `${fileName}のコードレビューを開始します。`;
+
+export const chatGPTRequestMessages: string[] = [
+  'このコードにバグはありませんか？あれば教えてください',
+  'このコードをリファクタリングしてください',
+];
