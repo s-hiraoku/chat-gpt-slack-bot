@@ -1,14 +1,14 @@
 import { AppMentionEvent, SayFn } from '@slack/bolt';
 import { downloadFile, getEnv, validateFiles } from './utils';
-import { covertSlackMessageToOpenAIMessage } from './slack';
-import { OPEN_AI_ROLE_TYPE, OpenAIMessages, SlackFiles } from './types';
+import { covertSlackMessageToOpenAIMessage, sendMessageToSlack, getSlackThreadMessages } from './slack';
+import { Env, OPEN_AI_ROLE_TYPE, OpenAIMessages, SlackFiles } from './types';
 import { WebClient } from '@slack/web-api';
 import { getChatGPTResponse } from './openai';
 import admZip from 'adm-zip';
 import { OPENAI_RESTORE_CODE_MESSAGE, SLACK_START_REVIEW_MESSAGE, chatGPTRequestMessages } from './messages';
 
-export const getEnvVariables = () => {
-  const { SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, OPENAI_API_KEY, OPENAI_MODEL } = getEnv();
+export const getEnvVariables = (): Env => {
+  const { SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, PORT, OPENAI_API_KEY, OPENAI_MODEL } = getEnv();
 
   if (!SLACK_BOT_TOKEN || !OPENAI_API_KEY) {
     console.error(' SLACK_BOT_TOKEN or OPENAI_API_KEY are not set in the environment variables');
@@ -18,48 +18,38 @@ export const getEnvVariables = () => {
   return {
     SLACK_BOT_TOKEN,
     SLACK_SIGNING_SECRET,
+    PORT,
     OPENAI_API_KEY,
     OPENAI_MODEL,
   };
 };
 
-export const replyWithEventTS = async (say: SayFn, text: string, eventTS: string) => {
-  await say({
-    text,
-    thread_ts: eventTS,
-  });
-};
-
-export const processThreadMessages = async (
+export const getOpenAIResponseAndReplyToThread = async (
   client: WebClient,
   channel: string,
   threadTs: string,
   user: string | undefined,
   slackBotId: string | undefined,
   say: SayFn,
-) => {
+): Promise<void> => {
   try {
-    const threadMessagesResponse = await client.conversations.replies({
-      channel,
-      ts: threadTs,
-    });
+    const threadMessagesResponse = await getSlackThreadMessages(client, channel, threadTs);
     const threadMessages = threadMessagesResponse.messages;
 
     if (threadMessages && slackBotId) {
       const conversations = covertSlackMessageToOpenAIMessage(threadMessages, slackBotId);
-      console.log('convesations', conversations);
       const reply = await getChatGPTResponse(conversations as OpenAIMessages);
       if (reply) {
-        await say({ text: reply, thread_ts: threadTs });
+        await sendMessageToSlack(say, reply, threadTs);
       }
     }
-  } catch (err) {
-    console.error(err);
-    await say({
-      text: `<@${user}>\n A defect has occurred. Please contact the developer.\n\n${err}`,
-      thread_ts: threadTs,
-    });
-    throw err;
+  } catch (error) {
+    console.error(error);
+    await sendMessageToSlack(
+      say,
+      `<@${user}>\n A defect has occurred. Please contact the developer.\n\n${error}`,
+      threadTs,
+    );
   }
 };
 
@@ -73,7 +63,7 @@ export const processReviewCode = async (
   say: SayFn,
 ): Promise<void> => {
   if (!('files' in event && event.files && validateFiles(event.files as SlackFiles))) {
-    await replyWithEventTS(say, 'Attached file is invalid.', eventTS);
+    await sendMessageToSlack(say, 'Attached file is invalid.', eventTS);
     return;
   }
   const fileUrl = (event.files as SlackFiles)[0].url_private;
@@ -83,7 +73,7 @@ export const processReviewCode = async (
 
   const topDirectoryName = zipEntries[0].entryName.split('/')[0];
   if (topDirectoryName !== DIFF_FILES_DIR) {
-    await replyWithEventTS(say, 'Invalid directory name for attachment.', eventTS);
+    await sendMessageToSlack(say, 'Invalid directory name for attachment.', eventTS);
     return;
   }
 
