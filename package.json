@@ -6,7 +6,8 @@
   "scripts": {
     "build": "npx tsc",
     "build:watch": "npx tsc --watch",
-    "serve": "npm run build && node dist/app.js"
+    "serve": "npm run build && node dist/app.js",
+    "lint": "eslint . --ext .ts"
   },
   "author": "hiraoku.shinichi",
   "license": "MIT",
@@ -25,11 +26,13 @@
     "@typescript-eslint/parser": "^6.7.5",
     "eslint": "^8.51.0",
     "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-import": "^2.28.1",
     "eslint-plugin-prettier": "^5.0.0",
     "eslint-plugin-unused-imports": "^3.0.0",
     "prettier": "^3.0.3",
     "prettier-plugin-organize-imports": "^3.2.3",
     "typescript": "^5.2.2"
+  },
+  "volta": {
+    "node": "20.8.1"
   }
 }
