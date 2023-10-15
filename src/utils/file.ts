@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const downloadFile = async (fileUrl: string, slackBotToken: string) => {
+export const downloadFile = async (fileUrl: string, slackBotToken: string): Promise<Buffer> => {
   try {
     const response = await axios.get(fileUrl, {
       headers: {
