@@ -4,9 +4,9 @@
   "description": "It is a bot that uses chat gpt in Slack to have conversations.",
   "main": "app.js",
   "scripts": {
+    "start:dev": "ngrok http 3000",
     "build": "npx tsc",
-    "build:watch": "npx tsc --watch",
-    "serve": "npm run build && node dist/app.js",
+    "serve": "nodemon dist/app.js",
     "lint": "eslint . --ext .ts"
   },
   "author": "hiraoku.shinichi",
@@ -28,6 +28,7 @@
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
     "eslint-plugin-unused-imports": "^3.0.0",
+    "nodemon": "^3.0.1",
     "prettier": "^3.0.3",
     "prettier-plugin-organize-imports": "^3.2.3",
     "typescript": "^5.2.2"
