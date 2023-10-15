@@ -20,7 +20,7 @@ const systemMessage: OpenAIMessage = {
 
 let openai: OpenAI;
 let openAIModel: string;
-export const initOpenAI = async (apiKey: string, model: string = DEFAULT_OPENAI_MODEL) => {
+export const initOpenAI = async (apiKey: string, model: string = DEFAULT_OPENAI_MODEL): Promise<void> => {
   if (!apiKey) {
     console.error(' OPENAI_API_KEY are not set in the environment variables');
     process.exit(1);
