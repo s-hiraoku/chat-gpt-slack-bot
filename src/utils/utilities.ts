@@ -1,6 +1,6 @@
 import { SlackFiles } from '../types';
 
-export const SLACK_MENTION_REGEXP = /<@[A-Za-z0-9]+>\n/;
+export const SLACK_MENTION_REGEXP = /<@[A-Za-z0-9]+>/g;
 export const NEWLINE_REGEXP = /\n/g;
 export const EMPTY_STRING = '';
 
