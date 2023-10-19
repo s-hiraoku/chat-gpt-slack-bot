@@ -3,6 +3,7 @@ import { getSlackBotId, sendMessageToSlack } from './slack';
 import { initOpenAI } from './openai';
 import { REVIEW_REQUEST_MESSAGE, SLACK_EMPTY_MESSAGE_REPLY } from './messages';
 import { getEnvVariables, processReviewCode, getOpenAIResponseAndReplyToThread } from './helpers';
+import { sanitizeText } from './utils';
 
 let slackBotId: string | undefined;
 
@@ -17,14 +18,16 @@ app.event('app_mention', async ({ event, client, say }) => {
   const { text: currentText, ts: eventTS, user } = event;
   const threadTs = event.thread_ts ? event.thread_ts : event.ts;
 
-  console.log('Current message:', currentText);
+  const currentMessage = sanitizeText(currentText);
 
-  if (!currentText) {
+  console.log('Current message:', currentMessage);
+
+  if (!currentMessage) {
     await sendMessageToSlack(say, SLACK_EMPTY_MESSAGE_REPLY, eventTS);
     return;
   }
 
-  if (currentText === REVIEW_REQUEST_MESSAGE) {
+  if (currentMessage === REVIEW_REQUEST_MESSAGE) {
     processReviewCode(client, event, eventTS, SLACK_BOT_TOKEN, slackBotId, say);
     return;
   }
