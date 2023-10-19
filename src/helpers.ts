@@ -82,6 +82,8 @@ export const processReviewCode = async (
     .map((entry) => entry.entryName.split('/')[1])
     .filter((name) => name !== '');
 
+  console.log('diffDirectoryNames', diffDirectoryNames);
+
   for (const diffDirectoryName of diffDirectoryNames) {
     const diffFileText = zip.readAsText(`${DIFF_FILES_DIR}/${diffDirectoryName}/${diffDirectoryName}.diff`);
     const originalFileNames = zipEntries
