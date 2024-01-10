@@ -34,4 +34,6 @@ coverage
 # Dependency directory
 node_modules
 
-
+# Output file for this application
+git-diff-files
+diff.zip
